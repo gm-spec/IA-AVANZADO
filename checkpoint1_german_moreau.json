@@ -1,0 +1,135 @@
+{
+  "name": "checkpoint1_nombre_apellido",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "482bf505-0a0a-4700-be8e-bb0ae6259860",
+      "name": "When clicking 'Execute Workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=[ROL CORPORATIVO]\nEres el Agente de Operaciones y Logística Corporativa de Cohen S.A. Tu función principal es procesar solicitudes complejas, auditar transacciones y coordinar la entrega de documentación comercial.\n\n[OBJETIVOS COMERCIALES]\n1. Resolver consultas de usuarios consultando las herramientas conectadas de forma autónoma.\n2. Formatear las respuestas de manera concisa, priorizando datos concretos sobre descripciones extensas.\n3. Asegurar que cada ejecución consuma el mínimo de llamadas a herramientas necesarias.\n\n[RESTRICCIONES Y GUARDRAILS]\n- No inventar ni alucinar datos, estados de transacciones ni cifras no confirmadas explícitamente por una herramienta.\n- Queda strictly prohibido el uso de lenguaje inclusivo (no utilizar desinencias en \"e\", \"x\", \"@\" ni alteraciones gramaticales no avaladas por la RAE). Mantener un español corporativo neutro y profesional.\n- Si una consulta no puede resolverse tras consultar las herramientas disponibles, informar la limitación sin iterar de forma redundante.",
+          "maxIterations": 7
+        }
+      },
+      "id": "2cd3fed6-cd50-4a74-bd79-64ef5470f9bc",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -48,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "options": {}
+      },
+      "id": "96d7d24d-68cf-48ad-965d-5b7ad7eaacb8",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -80,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "description": "Utiliza esta herramienta exclusivamente cuando el usuario solicite consultar, modificar o notificar registros operativos o envíos en la base corporativa. Esta herramienta debe activarse cuando la petición contenga un identificador válido (como un CUIT, CBU o Tracking Number) y requiera lectura/escritura en el sistema externo. No invocar para preguntas teóricas, saludos ni aclaraciones de formato."
+      },
+      "id": "4aa35c09-76b0-4f00-b7e6-cc130a7bd274",
+      "name": "Workspace Productivity Tool",
+      "type": "@n8n/n8n-nodes-langchain.toolCustomCode",
+      "typeVersion": 1,
+      "position": [
+        80,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "operaciones@cohen.com.ar",
+        "subject": "Reporte de Observabilidad - AI Agent Execution",
+        "emailType": "text",
+        "message": "=Reporte de Ejecución del Agente:\n\nResultado: {{ $json.output }}\nIteraciones y Estado: Exitoso\nFecha: {{ $now.format('yyyy-MM-dd HH:mm:ss') }}",
+        "options": {}
+      },
+      "id": "308f9299-bcf0-46ce-b720-d9665da7e4b1",
+      "name": "Gmail Observability Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        288,
+        -48
+      ],
+      "webhookId": "fbe43e06-f0a9-47f5-8e95-ddbbd4e6912b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iG0bl5eSCjGdZ3Dl",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking 'Execute Workflow'": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Gmail Observability Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "89a335d2-0f7a-41cb-a3b7-7c66c9fb738e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6e37d114ce3e013986ee97c70a09ca1c5650f125e79a3ab919d88acaad7c4f80"
+  },
+  "nodeGroups": [],
+  "id": "WSDAZqz1sETByr9s",
+  "tags": []
+}
