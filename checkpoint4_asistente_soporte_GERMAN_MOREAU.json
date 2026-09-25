@@ -1,0 +1,443 @@
+{
+  "name": "modulo 4",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "is:unread"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "id": "f234cc4e-652b-49b6-bfe2-8d58f0ec9189",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -384,
+        -64
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iG0bl5eSCjGdZ3Dl",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.subject }}",
+              "operation": "contains",
+              "value2": "Auto-reply"
+            },
+            {
+              "value1": "={{ $json.subject }}",
+              "operation": "contains",
+              "value2": "Out of office"
+            },
+            {
+              "value1": "={{ $json.subject }}",
+              "operation": "contains",
+              "value2": "Undeliverable"
+            },
+            {
+              "value1": "={{ $json.from }}",
+              "operation": "contains",
+              "value2": "no-reply@"
+            }
+          ]
+        }
+      },
+      "id": "5bd55c95-0730-4494-8bfd-aaff5afa8e46",
+      "name": "Filtro Anti-Bucle (IF)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "Remitente",
+              "value": "={{ $json.from }}"
+            },
+            {
+              "name": "Asunto",
+              "value": "={{ $json.subject }}"
+            },
+            {
+              "name": "CuerpoMensaje",
+              "value": "={{ $json.textPlain || $json.snippet }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "304b8d35-babe-4eea-b381-76eb448901c4",
+      "name": "Limpiar Payload (Set)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-120b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        304,
+        224
+      ],
+      "id": "5904600b-20ac-493b-82e7-9a0773ed5e82",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "Su7QOUNzxhO75RQJ",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.Asunto }}{{ $json.Remitente.text }}",
+        "options": {
+          "systemMessage": "=## ROL\nSos un asistente de atención al cliente. Analizá y redactá una respuesta para este correo entrante: Asunto: {{ $json.Asunto }} | Mensaje: {{ $json.CuerpoMensaje }}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        -48
+      ],
+      "id": "a285e94f-c71f-4b53-a773-282c0fa17266",
+      "name": "AI Agent (Manager)"
+    },
+    {
+      "parameters": {
+        "authentication": "appToken",
+        "operation": "search",
+        "filterGroupsUi": {
+          "filterGroupsValues": [
+            {
+              "filtersUi": {
+                "filterValues": [
+                  {
+                    "propertyName": "email|string",
+                    "value": "={{ $('Limpiar Payload (Set)').item.json.Remitente.value[0].address }}"
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "e939ff22-ef30-4081-806f-12172ad6307c",
+      "name": "HubSpot (Buscar Contacto)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -48
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "hubspotAppToken": {
+          "id": "AwG6CNOjTXJ5R0G2",
+          "name": "HubSpot account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.id }}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "id": "aa351e92-4c22-4432-8a69-e7ef3b0723bf",
+      "name": "¿Contacto Nuevo? (IF)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        896,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create"
+      },
+      "id": "277cb0dd-f72e-4795-af6a-2ac6f61c6942",
+      "name": "Crear Contacto (HubSpot)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        -160
+      ],
+      "credentials": {
+        "hubspotApi": {
+          "id": "JKVQodudjTkRd5xP",
+          "name": "HubSpot account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update"
+      },
+      "id": "95285624-8e1f-4e37-a4cf-f2260e6bb586",
+      "name": "Actualizar Contacto (HubSpot)",
+      "type": "n8n-nodes-base.hubspot",
+      "typeVersion": 2,
+      "position": [
+        1136,
+        48
+      ],
+      "credentials": {
+        "hubspotApi": {
+          "id": "JKVQodudjTkRd5xP",
+          "name": "HubSpot account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "MensajeSlack",
+              "value": "=El agente de IA procesó un nuevo correo de {{ $('Limpiar Payload (Set)').item.json.Remitente.value[0].address }}. El contacto fue gestionado en el CRM y se ha generado un borrador en Gmail esperando revisión humana."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "13dc95be-62e3-4ee4-adc1-9b9236a4e8b7",
+      "name": "Filtro para Slack (Set)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Limpiar Payload (Set)').item.json.Asunto }}",
+        "message": "={{ $('AI Agent (Manager)').item.json.output }}",
+        "options": {}
+      },
+      "id": "cb33069c-c871-4264-a087-52b32952ba75",
+      "name": "Crear Borrador (HITL)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2000,
+        32
+      ],
+      "webhookId": "be09a52c-479e-4f4f-9452-0a517bb86385",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "iG0bl5eSCjGdZ3Dl",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/YOUR_WEBHOOK_URL/B0C4DNH0WQH/L7GBkLMLpFrEXl5yz70poTWh",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"={{ $json.MensajeSlack }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1696,
+        64
+      ],
+      "id": "c0369b02-41ac-462e-a236-612f601006ab",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filtro Anti-Bucle (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro Anti-Bucle (IF)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Limpiar Payload (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent (Manager)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar Payload (Set)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent (Manager)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HubSpot (Buscar Contacto)": {
+      "main": [
+        [
+          {
+            "node": "¿Contacto Nuevo? (IF)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Contacto Nuevo? (IF)": {
+      "main": [
+        [
+          {
+            "node": "Crear Contacto (HubSpot)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Actualizar Contacto (HubSpot)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent (Manager)": {
+      "main": [
+        [
+          {
+            "node": "HubSpot (Buscar Contacto)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtro para Slack (Set)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Contacto (HubSpot)": {
+      "main": [
+        [
+          {
+            "node": "Filtro para Slack (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Contacto (HubSpot)": {
+      "main": [
+        [
+          {
+            "node": "Filtro para Slack (Set)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Crear Borrador (HITL)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "447cdff6-0655-41fc-94ef-bb7d8453c28a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6e37d114ce3e013986ee97c70a09ca1c5650f125e79a3ab919d88acaad7c4f80"
+  },
+  "nodeGroups": [],
+  "id": "dACzXD9EqLbqQcg7",
+  "tags": []
+}
